@@ -249,7 +249,7 @@ class Mount(dict):
     def __init__(self, target, source, type='volume', read_only=False,
                  consistency=None, propagation=None, no_copy=False,
                  labels=None, driver_config=None, tmpfs_size=None,
-                 tmpfs_mode=None):
+                 tmpfs_mode=None, create_mountpoint=False):
         self['Target'] = target
         self['Source'] = source
         if type not in ('bind', 'volume', 'tmpfs', 'npipe'):
@@ -263,10 +263,12 @@ class Mount(dict):
             self['Consistency'] = consistency
 
         if type == 'bind':
+            bind_opts = {}
             if propagation is not None:
-                self['BindOptions'] = {
-                    'Propagation': propagation
-                }
+                bind_opts['Propagation'] = propagation
+            if create_mountpoint:
+                bind_opts['CreateMountpoint'] = True
+            self['BindOptions'] = bind_opts
             if any([labels, driver_config, no_copy, tmpfs_size, tmpfs_mode]):
                 raise errors.InvalidArgument(
                     'Incompatible options have been provided for the bind '
@@ -282,7 +284,7 @@ class Mount(dict):
                 volume_opts['DriverConfig'] = driver_config
             if volume_opts:
                 self['VolumeOptions'] = volume_opts
-            if any([propagation, tmpfs_size, tmpfs_mode]):
+            if any([propagation, tmpfs_size, tmpfs_mode]) or create_mountpoint:
                 raise errors.InvalidArgument(
                     'Incompatible options have been provided for the volume '
                     'type mount.'
@@ -299,7 +301,7 @@ class Mount(dict):
                 tmpfs_opts['SizeBytes'] = parse_bytes(tmpfs_size)
             if tmpfs_opts:
                 self['TmpfsOptions'] = tmpfs_opts
-            if any([propagation, labels, driver_config, no_copy]):
+            if any([propagation, labels, driver_config, no_copy]) or create_mountpoint:
                 raise errors.InvalidArgument(
                     'Incompatible options have been provided for the tmpfs '
                     'type mount.'
